@@ -1,7 +1,23 @@
+
+
 import React, { useState, useEffect } from "react";
 import { FaMapLocationDot, FaTemperatureLow } from "react-icons/fa6";
-import BG1 from '../assets/bg.jpg'
-import BG2 from '../assets/morning.jpg'
+import './my.css'
+import { getTimeAndPeriod } from "./GetTime";
+import BG1N from '../assets/night.jpg'
+import BG2M from '../assets/morning.jpg'
+import sun from '../assets/Morning/sky.png'
+import scatter from '../assets/Morning/scatter.png'
+import rain from '../assets/Morning/rain.png'
+import mist from '../assets/Morning/mist.png'
+import snow from '../assets/snow.png'
+import slowRain from '../assets/slowRain.png'
+import thunder from '../assets/thunder.png'
+import sunN from '../assets/Night/sky.png'
+import scatterN from '../assets/Night/scatter.png'
+import rainN from '../assets/Night/rain.png'
+import mistN from '../assets/Night/mist.png'
+
 
 const MainContainer = () => {
   const [searchVal, setSearch] = useState("mumbai");
@@ -10,8 +26,9 @@ const MainContainer = () => {
   const [tempclr, setTempclr] = useState("#3498db");
   const [cont , setCont] = useState("IN");
   const [icon, setIcon] = useState("https://openweathermap.org/img/wn/09d@2x.png");
-  const [daytime, setDaytime] = useState(null);
-
+  const [p , setP] = useState("")
+  const [t, setT] = useState("")
+  const [logo, setLogo] = useState(null)
 
   useEffect(() => {
     const fetchApi = async () => {
@@ -24,27 +41,33 @@ const MainContainer = () => {
         setCont(data.sys.country);
         setIcon(`https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`);
         
-        // Calculate local time
-        const localTime = new Date((data.dt + data.timezone) * 1000);
-        const sunriseTime = new Date(data.sys.sunrise * 1000);
-        const sunsetTime = new Date(data.sys.sunset * 1000);
 
-        // Determine if it's morning, afternoon, or night
-        if (localTime >= sunriseTime && localTime < sunsetTime) {
-          setDaytime("morning");
-        } else if (localTime >= sunsetTime) {
-          setDaytime("night");
-        } else {
-          setDaytime("afternoon");
-        }
+        const { period, timeString } = getTimeAndPeriod(data.timezone);
+
+        setP(period)
+        setT(timeString)
+
+  
       } catch (error) {
         console.error("Error fetching data:", error);
         setCity(null);
       }
     };
-
-    fetchApi();
+  
+    fetchApi()
   }, [searchVal]);
+  
+  
+  useEffect(() => {
+    if (city) {
+      if (p === "Night") {
+        setLogo(getWeatherConditionNight(city.weather[0].id));
+      } else {
+        setLogo(getWeatherConditionMorning(city.weather[0].id));
+      }
+    }
+  }, [p, city]);
+  
 
   useEffect(() => {
     if (temp === 0) {
@@ -62,20 +85,13 @@ const MainContainer = () => {
     }
   }, [temp]);
 
+
+
   const BorderStyle = {
-    borderBottom: `8px solid ${tempclr}`,
-    borderLeft: `8px solid ${tempclr}`,
-    borderRight: `8px solid ${tempclr}`,
+    border: `8px solid ${tempclr}`,
     background: `rgba(19,19,148, 0.8)`,
     backdropFilter: `blur(8px)` 
   };
-
-  const HStyle = {
-    borderColor : `${tempclr}`,
-    background: `rgba(19,19,148, 0.8)`,
-
-    backdropFilter: `blur(8px)` 
-  }
 
   const IconColor = `text-blue-500`;
 
@@ -85,7 +101,7 @@ const MainContainer = () => {
     border-l-8 border-r-8 border-b-8
     rounded-lg
     min-h-[45vh] w-[80vw]
-    md:min-h-[50vh] md:w-[40vw]
+    lg:min-h-[50vh] lg:w-[40vw]
   `;
 
   const SearchBar = `
@@ -113,15 +129,70 @@ const MainContainer = () => {
     bg-[#7dd3fc]
   `;
 
-  
+  function getWeatherConditionMorning(code) {
+
+    if (code === 800 ) {
+      return sun
+    }
+
+    const group = Math.floor(code / 100);
+
+    switch (group) {
+        case 2:
+            return thunder;
+        case 3:
+            return slowRain;
+        case 5:
+            return rain;
+        case 6:
+            return snow;
+        case 7:
+            return mist;
+        case 8:
+            return scatter;
+        default:
+            return "Unknown";
+    }
+}
+function getWeatherConditionNight(code) {
+
+  if (code === 800 ) {
+    return sunN
+  }
+
+  const group = Math.floor(code / 100);
+
+  switch (group) {
+      case 2:
+          return thunder;
+      case 3:
+          return slowRain;
+      case 5:
+          return rainN;
+      case 6:
+          return snow;
+      case 7:
+          return mistN;
+      case 8:
+          return scatterN;
+      default:
+          return "Unknown";
+  }
+}
 
   
+
   return (
-    <div className="body-boc" style={{backgroundImage: daytime ==='night' ?  `url(${BG1})` : `url(${BG2})`}} >
+    <div className="body-boc"style={{backgroundImage: p === "Night" ? `url(${BG1N})` : `url(${BG2M})`}}>
+
     <div className={MainBox}>
-      <div className="head">
-        <h1 className={HeadStyle} style={HStyle} >WeatherApp</h1>
-      </div>
+    {city && city.cod === 200 ? 
+      <img src={logo} alt="weather" className="max-h-[8rem] mb-4 slide-in-top" />
+:
+<div className="h-[8rem] mb-4" ></div>
+
+    }
+
       <div className={InnerBox} style={BorderStyle}>
         <div className="searchContainer w-[100%] flex justify-center ">
           <input
@@ -149,16 +220,20 @@ const MainContainer = () => {
               <h1 className="inline-block text-black text-center text-xl" >{city.weather[0].description}</h1>
             </div>
 
-            <div className="moreinfo flex justify-between mt-4 mb-2 mx-2 text-white">
+            <div className="moreinfo flex flex-col justify-between mt-4 mb-2 mx-2 text-white smed:flex-row ">
               <div className="humidity text-left ">
                 <p className="mb-1"> Humidity : {city.main.humidity} </p>
                 <p> Visibility : {city.visibility} meters </p>
               </div>
               
-              <div className="wind text-right">
+              <div className="wind text-left smed:text-right mt-2 smed:mt-0">
                 <p className="mb-2"> Wind Speed : {city.wind.speed} m/s</p>
                 <p> Wind Direction : {city.wind.deg}° </p>
               </div>
+            </div>
+            <div className="text-center text-blue-400 mb-2" >
+              {p} {","}
+              {t}
             </div>
           </>
         ) : (
@@ -188,10 +263,13 @@ const MainContainer = () => {
                 <p>  --- </p>
               </div>
             </div>
+            <div className="text-center text-blue-400 mb-2" >
+             --
+            </div>
           </>
         )}
       </div>
-      {daytime && <p className="text-white"> {daytime}</p>}
+      
     </div>
     </div>
   );
