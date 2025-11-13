@@ -15,6 +15,7 @@ import {
 
 const MainContainer = () => {
   const [searchVal, setSearch] = useState("mumbai");
+  const [debouncedSearch, setDebouncedSearch] = useState(searchVal);
   const [city, setCity] = useState(null);
   const [temp, setTemp] = useState(0);
   const [tempclr, setTempclr] = useState("#3498db");
@@ -25,11 +26,25 @@ const MainContainer = () => {
   const [p, setP] = useState("");
   const [t, setT] = useState("");
   const [logo, setLogo] = useState(null);
+  const [logoKey, setLogoKey] = useState(0);
 
+  // 🕒 Debounce logic — wait 800ms after typing stops before triggering API
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchVal);
+    }, 800);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchVal]);
+
+  // 🌤️ Fetch weather data whenever debounced value changes
   useEffect(() => {
     const fetchApi = async () => {
+      if (!debouncedSearch.trim()) return;
       try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?q=${searchVal}&appid=f678ae0debfc7ac533cd91ce8ab4c352`;
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${debouncedSearch}&appid=f678ae0debfc7ac533cd91ce8ab4c352`;
         const data = await callApi(url);
         setCity(data);
         setTemp((data.main.temp - 273.15).toFixed(2));
@@ -39,7 +54,6 @@ const MainContainer = () => {
         );
 
         const { period, timeString } = getTimeAndPeriod(data.timezone);
-
         setP(period);
         setT(timeString);
       } catch (error) {
@@ -49,7 +63,7 @@ const MainContainer = () => {
     };
 
     fetchApi();
-  }, [searchVal]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     if (city) {
@@ -58,6 +72,7 @@ const MainContainer = () => {
       } else {
         setLogo(getWeatherConditionMorning(city.weather[0].id));
       }
+      setLogoKey((prev) => prev + 1); // 👈 triggers re-render for animation
     }
   }, [p, city]);
 
@@ -99,9 +114,8 @@ const MainContainer = () => {
     bg-blue-200
     border-2 shadow-md border-cyan-200 border-solid
     md:p-4
-    focus:border-cyan-500 focus:shadow-lg  focus:outline-none
+    focus:border-cyan-500 focus:shadow-lg focus:outline-none
     w-[80%]
-    
   `;
 
   const tempBox = `
@@ -114,98 +128,103 @@ const MainContainer = () => {
 
   return (
     <div
-      className="body-boc"
+      className="min-h-screen w-full flex items-center justify-center bg-cover bg-center transition-all duration-700"
       style={{
         backgroundImage: p === "Night" ? `url(${BG1N})` : `url(${BG2M})`,
       }}
     >
-      <div className={MainBox}>
+      <div
+        className="relative flex flex-col items-center justify-start p-6 rounded-2xl w-[90vw] max-w-[450px] bg-white/10 backdrop-blur-md border border-white/20 shadow-xl transition-all duration-500"
+        style={{ borderColor: tempclr }}
+      >
+        {/* Search Bar */}
+        <input
+          type="search"
+          className={`w-full p-3 mb-5 rounded-lg bg-white/20 text-white placeholder:text-gray-300 outline-none border border-white/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300 transition-all  ${p === "Night" ? "text-white" : "text-gray-800"}`}
+          placeholder="Search for a city..."
+          value={searchVal}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {/* Weather Logo */}
         {city && city.cod === 200 ? (
           <img
+            key={logoKey}
             src={logo}
             alt="weather"
-            className="max-h-[8rem] mb-4 slide-in-top"
+            className="h-28 w-28 object-contain mb-3 animate-fade-in"
           />
         ) : (
-          <div className="h-[8rem] mb-4"></div>
+          <div className="h-28 mb-3"></div>
         )}
 
-        <div className={InnerBox} style={BorderStyle}>
-          <div className="searchContainer w-[100%] flex justify-center ">
-            <input
-              type="search"
-              className={SearchBar}
-              placeholder="Enter City..."
-              value={searchVal}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          {city && city.cod === 200 ? (
-            <>
-              <div className="location-box mt-[2rem] mx-auto flex justify-center items-center">
-                <FaMapLocationDot className={IconStyle} />
-                <h1 className="inline-block text-[2.25rem] font-bold text-white drop-shadow-xl absolute opacity-100">
-                  {city.name} <spann className="text-[1rem]">{cont}</spann>
-                </h1>
+        {/* City Info */}
+        {city && city.cod === 200 ? (
+          <>
+            <h1 className={`text-3xl font-bold drop-shadow-lg text-center ${p === "Night" ? "text-white" : "text-gray-800"}`}>
+              {city.name} <span className="text-lg opacity-80">{cont}</span>
+            </h1>
+
+            {/* Temperature */}
+            <div
+              className="flex items-center justify-center mt-3 text-4xl font-semibold"
+              style={{ color: tempclr }}
+            >
+              <FaTemperatureLow className="mr-2" />
+              {temp}°C
+            </div>
+
+            {/* Description */}
+            <div className="flex items-center justify-center mt-4 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg shadow-md">
+              <img src={icon} alt="icon" className="w-8 h-8 mr-2" />
+              <h2 className={`capitalize text-lg font-medium ${p === "Night" ? "text-white" : "text-gray-800"}`}>
+                {city.weather[0].description}
+              </h2>
+            </div>
+
+            {/* Extra Info */}
+            <div className={`w-full mt-6 grid grid-cols-2 text-sm gap-3 ${p === "Night" ? "text-white" : "text-gray-800"}`}>
+              <div className="bg-white/10 p-3 rounded-md">
+                <p>💧 Humidity: {city.main.humidity}%</p>
+                <p>👁 Visibility: {city.visibility} m</p>
               </div>
-              <div className={tempBox}>
-                <FaTemperatureLow className=" inline-block mr-2 " />
-                {temp}°C
+              <div className="bg-white/10 p-3 rounded-md text-right">
+                <p>🌬 Wind: {city.wind.speed} m/s</p>
+                <p>🧭 Direction: {city.wind.deg}°</p>
               </div>
-              <div className="Desc flex mt-8 justify-center bg-blue-300 items-center rounded-md">
-                <img src={icon} alt="icon" className="size-[2rem]" />
-                <h1 className="inline-block text-black text-center text-xl">
-                  {city.weather[0].description}
-                </h1>
+            </div>
+
+            {/* Footer Time */}
+            <div className={`mt-5 text-sm ${p === "Night" ? "text-cyan-300" : "text-cyan-700"}`}>
+              {p} • {t}
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold text-red-400 mt-6">
+              No Data Found!
+            </h1><div className="TempBox mt-4 text-center text-[1.5rem] font-bold text-white ">
+              ...
+            </div>
+            <div className="Desc flex mt-8 justify-center bg-blue-300 items-center rounded-md">
+              <div className="size-[2rem]"></div>
+              <h1 className="inline-block text-black text-center text-xl"></h1>
+            </div>
+
+            <div className="moreinfo flex justify-between mt-4 mb-2 mx-2 text-white">
+              <div className="humidity text-left ">
+                <p className="mb-1"> --- </p>
+                <p> --- </p>
               </div>
 
-              <div className="moreinfo flex flex-col justify-between mt-4 mb-2 mx-2 text-white smed:flex-row ">
-                <div className="humidity text-left ">
-                  <p className="mb-1"> Humidity : {city.main.humidity} </p>
-                  <p> Visibility : {city.visibility} meters </p>
-                </div>
-
-                <div className="wind text-left smed:text-right mt-2 smed:mt-0">
-                  <p className="mb-2"> Wind Speed : {city.wind.speed} m/s</p>
-                  <p> Wind Direction : {city.wind.deg}° </p>
-                </div>
+              <div className="wind text-right">
+                <p className="mb-2"> --- </p>
+                <p> --- </p>
               </div>
-              <div className="text-center text-blue-400 mb-2">
-                {p} {","}
-                {t}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mt-[2rem] mx-auto flex justify-center items-center">
-                <FaMapLocationDot className={IconStyle} />
-                <h1 className="inline-block text-[2.25rem] font-bold drop-shadow-xl absolute text-red-400">
-                  No Data!
-                </h1>
-              </div>
-              <div className="TempBox mt-4 text-center text-[1.5rem] font-bold text-white ">
-                ...
-              </div>
-              <div className="Desc flex mt-8 justify-center bg-blue-300 items-center rounded-md">
-                <div className="size-[2rem]"></div>
-                <h1 className="inline-block text-black text-center text-xl"></h1>
-              </div>
-
-              <div className="moreinfo flex justify-between mt-4 mb-2 mx-2 text-white">
-                <div className="humidity text-left ">
-                  <p className="mb-1"> --- </p>
-                  <p> --- </p>
-                </div>
-
-                <div className="wind text-right">
-                  <p className="mb-2"> --- </p>
-                  <p> --- </p>
-                </div>
-              </div>
-              <div className="text-center text-blue-400 mb-2">--</div>
-            </>
-          )}
-        </div>
+            </div>
+            <div className="text-center text-blue-400 mb-2">--</div>
+          </>
+        )}
       </div>
     </div>
   );
