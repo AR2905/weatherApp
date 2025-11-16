@@ -92,40 +92,6 @@ const MainContainer = () => {
     }
   }, [temp]);
 
-  const BorderStyle = {
-    border: `8px solid ${tempclr}`,
-    background: `rgba(19,19,148, 0.8)`,
-    backdropFilter: `blur(8px)`,
-  };
-
-  const IconColor = `text-blue-500`;
-
-  const MainBox = `w-[100vw] h-[100vh] flex flex-col justify-center items-center `;
-  const InnerBox = `
-    mx-auto inline-block
-    border-l-8 border-r-8 border-b-8
-    rounded-lg
-    min-h-[45vh] w-[80vw]
-    lg:min-h-[50vh] lg:w-[40vw]
-  `;
-
-  const SearchBar = `
-    rounded-md mt-6 mx-auto p-2
-    bg-blue-200
-    border-2 shadow-md border-cyan-200 border-solid
-    md:p-4
-    focus:border-cyan-500 focus:shadow-lg focus:outline-none
-    w-[80%]
-  `;
-
-  const tempBox = `
-    TempBox mt-4 text-center text-[1.5rem] font-bold text-white 
-  `;
-
-  const IconStyle = `
-    size-24 opacity-30 ${IconColor}
-  `;
-
   return (
     <div
       className="min-h-screen w-full flex items-center justify-center bg-cover bg-center transition-all duration-700"
@@ -140,7 +106,7 @@ const MainContainer = () => {
         {/* Search Bar */}
         <input
           type="search"
-          className={`w-full p-3 mb-5 rounded-lg bg-white/20 text-white placeholder:text-gray-300 outline-none border border-white/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300 transition-all  ${p === "Night" ? "text-white" : "text-gray-800"}`}
+          className={`w-full p-3 mb-5 rounded-lg outline-none border transition-all ${p === "Night" ? "bg-white/20 text-white placeholder:text-gray-300 border-white/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300" : "bg-white/70 text-gray-900 placeholder:text-gray-600 border-gray-300 focus:border-gray-500 focus:ring-2 focus:ring-gray-400"}`}
           placeholder="Search for a city..."
           value={searchVal}
           onChange={(e) => setSearch(e.target.value)}
@@ -150,7 +116,7 @@ const MainContainer = () => {
         {city && city.cod === 200 ? (
           <img
             key={logoKey}
-            src={logo}
+            src={logo || "/placeholder.svg"}
             alt="weather"
             className="h-28 w-28 object-contain mb-3 animate-fade-in"
           />
@@ -161,7 +127,7 @@ const MainContainer = () => {
         {/* City Info */}
         {city && city.cod === 200 ? (
           <>
-            <h1 className={`text-3xl font-bold drop-shadow-lg text-center ${p === "Night" ? "text-white" : "text-gray-800"}`}>
+            <h1 className={`text-3xl font-bold drop-shadow-lg text-center ${p === "Night" ? "text-white" : "text-gray-900"}`}>
               {city.name} <span className="text-lg opacity-80">{cont}</span>
             </h1>
 
@@ -195,7 +161,7 @@ const MainContainer = () => {
             </div>
 
             {/* Footer Time */}
-            <div className={`mt-5 text-sm ${p === "Night" ? "text-cyan-300" : "text-cyan-700"}`}>
+            <div className={`mt-5 text-sm ${p === "Night" ? "text-cyan-300" : "text-cyan-600"}`}>
               {p} • {t}
             </div>
           </>
